@@ -1,11 +1,12 @@
 from airflow import DAG
 from airflow.operators.bash_operator import BashOperator
-from airflow.operators.python_operator import PythonOperator
+from airflow.operators.python_operator import PythonOperator, BranchPythonOperator
+from airflow.operators.dummy_operator import DummyOperator
 from airflow.utils.dates import days_ago
 
 from datetime import timedelta
 
-import prepro
+import functions as f
 
 # DAG default arguments
 default_args = {
@@ -32,7 +33,7 @@ dag = DAG(
 # Prepare work directory
 PrepareWorkdir = BashOperator(
     task_id='prepare_workdir',
-    bash_command='mkdir -p /tmp/forecast/',
+    bash_command='mkdir -p /tmp/forecast/arima/',
     dag=dag,
 )
 
@@ -68,7 +69,7 @@ UnzipHum = BashOperator(
 MergeDatasets = PythonOperator(
     task_id='merge_datasets',
     provide_context=True,
-    python_callable=prepro.merge_datasets,
+    python_callable=f.merge_datasets,
     op_kwargs={
         'temp': '/tmp/forecast/temperature.csv',
         'hum': '/tmp/forecast/humidity.csv',
@@ -91,14 +92,44 @@ RunDatabaseContainer = BashOperator(
     dag=dag,
 )
 
+
 # Insert data from CSV into database
 InsertData = PythonOperator(
     task_id='insert_data',
     provide_context=True,
-    python_callable=prepro.insert_data,
+    python_callable=f.insert_data,
     op_kwargs={
         'file': '/tmp/forecast/data.csv',
     },
+    dag=dag,
+)
+
+# Train ARIMA temperature model
+TrainArimaTemp = PythonOperator(
+    task_id='train_arima_temp',
+    provide_context=True,
+    python_callable=f.train_arima_temp,
+    op_kwargs={
+        'file': '/tmp/forecast/arima/temp.pkl',
+    },
+    dag=dag,
+)
+
+# Train ARIMA humidity model
+TrainArimaHum = PythonOperator(
+    task_id='train_arima_hum',
+    provide_context=True,
+    python_callable=f.train_arima_hum,
+    op_kwargs={
+        'file': '/tmp/forecast/arima/hum.pkl',
+    },
+    dag=dag,
+)
+
+# Clone git repository
+CloneRepository = BashOperator(
+    task_id='clone_repository',
+    bash_command='if [ -d "/tmp/forecast/code" ]; then rm -Rf /tmp/forecast/code; fi && git clone https://github.com/Varrrro/forecast.git /tmp/forecast/code',
     dag=dag,
 )
 
@@ -106,4 +137,9 @@ InsertData = PythonOperator(
 PrepareWorkdir >> DownloadTemp >> UnzipTemp >> MergeDatasets
 PrepareWorkdir >> DownloadHum >> UnzipHum >> MergeDatasets
 
-MergeDatasets >> CreateDockerNetwork >> RunDatabaseContainer >> InsertData
+MergeDatasets >> InsertData
+CreateDockerNetwork >> RunDatabaseContainer >> InsertData
+
+InsertData >> [TrainArimaTemp, TrainArimaHum]
+
+CloneRepository
