@@ -158,17 +158,52 @@ RunTests = BashOperator(
     dag=dag,
 )
 
-# Build image for the service
-BuildServiceImage = BashOperator(
-    task_id='build_service_image',
-    bash_command=f'docker build -t forecast {base_dir}/code/src',
+# Build ARIMA service image
+BuildArimaServiceImage = BashOperator(
+    task_id='build_arima_service_image',
+    bash_command=f'docker build -t forecast:arima {base_dir}/code/src/v1',
     dag=dag,
 )
 
-# Run service container
-RunServiceContainer = BashOperator(
-    task_id='run_service_container',
-    bash_command=f'docker run --name="forecast" -p 8000:8080 -v {base_dir}/models:/models forecast',
+# Build Autoregressive service image
+BuildAutoregServiceImage = BashOperator(
+    task_id='build_autoreg_service_image',
+    bash_command=f'docker build -t forecast:autoreg {base_dir}/code/src/v2',
+    dag=dag,
+)
+
+# Build gateway image
+BuildGatewayImage = BashOperator(
+    task_id='build_gateway_image',
+    bash_command=f'docker build -t forecast:gateway {base_dir}/code/src/gateway',
+    dag=dag,
+)
+
+# Create docker network for container interoperation
+CreateDockerNetwork = BashOperator(
+    task_id='create_docker_network',
+    bash_command='docker network create forecast',
+    dag=dag,
+)
+
+# Run ARIMA service container
+RunArimaServiceContainer = BashOperator(
+    task_id='run_arima_service_container',
+    bash_command=f'docker run --name="forecast_arima" --network="forecast" -v {base_dir}/models/arima:/models -d forecast:arima',
+    dag=dag,
+)
+
+# Run Autoregressive service container
+RunAutoregServiceContainer = BashOperator(
+    task_id='run_autoreg_service_container',
+    bash_command=f'docker run --name="forecast_autoreg" --network="forecast" -v {base_dir}/models/autoreg:/models -d forecast:autoreg',
+    dag=dag,
+)
+
+# Run gateway container
+RunGatewayContainer = BashOperator(
+    task_id='run_gateway_container',
+    bash_command='docker run --name="forecast_gateway" --network="forecast" -p 8000:8080 -d forecast:gateway',
     dag=dag,
 )
 
@@ -176,9 +211,13 @@ RunServiceContainer = BashOperator(
 PrepareWorkdir >> DownloadTemp >> UnzipTemp >> MergeDatasets
 PrepareWorkdir >> DownloadHum >> UnzipHum >> MergeDatasets
 
-MergeDatasets >> InsertData
-RunDatabaseContainer >> InsertData
+[MergeDatasets, RunDatabaseContainer] >> InsertData
 
-InsertData >> [TrainArimaTemp, TrainArimaHum, TrainAutoregTemp, TrainAutoregHum] >> RunServiceContainer
+InsertData >> [TrainArimaTemp, TrainArimaHum] >> RunArimaServiceContainer
+InsertData >> [TrainAutoregTemp, TrainAutoregHum] >> RunAutoregServiceContainer
 
-CloneRepository >> RunTests >> BuildServiceImage >> RunServiceContainer
+CloneRepository >> RunTests >> [CreateDockerNetwork, BuildArimaServiceImage, BuildAutoregServiceImage, BuildGatewayImage]
+
+[CreateDockerNetwork, BuildArimaServiceImage] >> RunArimaServiceContainer
+[CreateDockerNetwork, BuildAutoregServiceImage] >> RunAutoregServiceContainer
+[BuildGatewayImage, RunArimaServiceContainer, RunAutoregServiceContainer] >> RunGatewayContainer
