@@ -5,6 +5,7 @@ import pickle
 import os.path
 
 from statsmodels.tsa.arima_model import ARIMA
+from statsmodels.tsa.ar_model import AutoReg
 
 def merge_datasets(**kwargs):
     temp_df = pd.read_csv(kwargs['temp'])
@@ -84,6 +85,34 @@ def train_arima_hum(**kwargs):
         error_action='ignore',
         supress_warnings=True,
         stepwise=True)
+
+    with open(kwargs['file'], 'wb') as file:
+        pickle.dump(model, file)
+
+    conn.dispose()
+
+def train_autoreg_temp(**kwargs):
+    if os.path.isfile(kwargs['file']):
+        return
+    
+    conn = sqlalchemy.create_engine('postgresql://forecast:forecast@localhost:5432/forecast')
+    df = pd.read_sql_table('history', conn)
+
+    model = AutoReg(df[['TEMP']], 5).fit()
+
+    with open(kwargs['file'], 'wb') as file:
+        pickle.dump(model, file)
+
+    conn.dispose()
+
+def train_autoreg_hum(**kwargs):
+    if os.path.isfile(kwargs['file']):
+        return
+    
+    conn = sqlalchemy.create_engine('postgresql://forecast:forecast@localhost:5432/forecast')
+    df = pd.read_sql_table('history', conn)
+
+    model = AutoReg(df[['HUM']], 5).fit()
 
     with open(kwargs['file'], 'wb') as file:
         pickle.dump(model, file)
