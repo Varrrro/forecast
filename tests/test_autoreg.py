@@ -1,5 +1,5 @@
 import sys
-sys.path.append("src")
+sys.path.append("src/v2")
 
 import autoreg as model
 import unittest

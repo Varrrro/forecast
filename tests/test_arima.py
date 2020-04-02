@@ -1,5 +1,5 @@
 import sys
-sys.path.append("src")
+sys.path.append("src/v1")
 
 import arima as model
 import unittest

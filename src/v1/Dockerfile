@@ -8,14 +8,11 @@ RUN python3 -m pip install --no-cache-dir --upgrade pip && \
     python3 -m pip install --no-cache-dir \
     gunicorn \
     hug \
-    pmdarima \
-    statsmodels \
-    sqlalchemy
+    pmdarima
 
 # Copy source files
 COPY arima.py .
-COPY autoreg.py .
-COPY forecast.py .
+COPY arima_rest.py .
 
 # Set volume for the models
 ENV PKL_PATH="/models"
@@ -27,4 +24,4 @@ ENV PORT=8080
 EXPOSE 8080
 
 # Run web server
-ENTRYPOINT [ "gunicorn", "-b", "0.0.0.0:8080", "forecast:__hug_wsgi__" ]
+ENTRYPOINT [ "gunicorn", "-b", "0.0.0.0:8080", "arima_rest:__hug_wsgi__" ]
