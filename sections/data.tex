@@ -1,0 +1,73 @@
+\section{Conjunto de datos}
+Como ya hemos indicado, los modelos que usan los servicios que
+se han implementado para esta práctica se deben entrenar con un unos
+conjuntos de datos proporcionados. Estos datos, que están en formato
+CSV, deben descargarse, descomprimirse, limpiarse y, por último,
+introducirse en una base de datos.
+
+\subsection{Preparación del directorio de trabajo}
+Antes de realizar ninguna tarea, debemos crear el directorio en el que
+se va a desarrollar toda la actividad del flujo de trabajo. En mi caso,
+trabajaré con el directorio \lstinline{/tmp/forecast}, dentro del cuál
+tendremos \lstinline{data/} para los ficheros de datos, \lstinline{models/}
+para los modelos y \lstinline{code/} para el código fuente de los servicios.
+
+Creamos todas estas carpetas, excepto la última (se crea al clonar el
+repositorio), usando un \textit{BashOperator}.
+
+\begin{itemize}
+    \item\href{
+        https://github.com/Varrrro/forecast/blob/master/airflow/tasks.py#L36-L41
+    }{Creación de la estructura de carpetas necesaria}
+\end{itemize}
+
+\subsection{Descarga y descompresión}
+Al tratarse de dos ficheros, su descarga y descompresión se puede
+realizar en paralelo. Para realizar estas tareas, usamos \textit{BashOperator}
+junto con las herramientas \textit{curl} (para la descarga) y
+\textit{unzip} (para la descompresión).
+
+\begin{itemize}
+    \item\href{
+        https://github.com/Varrrro/forecast/blob/master/airflow/tasks.py#L43-L55
+    }{Descarga de ficheros}
+    \item\href{
+        https://github.com/Varrrro/forecast/blob/master/airflow/tasks.py#L57-L69
+    }{Descompresión de ficheros}
+\end{itemize}
+
+\subsection{Procesamiento de los datos}
+Los ficheros proporcionados contienen datos de múltiples ciudades,
+teniendo que quedarnos nosotros con los referentes a San Francisco.
+Además, hay que juntar los datos extraídos de ambos ficheros en uno
+solo usando la fecha de cada medición como clave para la unión y guardarlos
+en un nuevo fichero CSV.
+
+Se ha implementado una función en Python que realiza este procesamiento
+a través de un \textit{PythonOperator} en el flujo de trabajo.
+
+\begin{itemize}
+    \item\href{
+        https://github.com/Varrrro/forecast/blob/master/airflow/tasks.py#L71-L82
+    }{Operador del flujo de trabajo}
+    \item\href{
+        https://github.com/Varrrro/forecast/blob/master/airflow/functions.py#L10-L24
+    }{Función que procesa los datos}
+\end{itemize}
+
+\subsection{Inserción en base de datos}
+Por último, los datos ya procesados se insertan en una base de datos
+para facilitar el posterior entrenamiento de los modelos con los mismos.
+La base de datos elegida es una PostgreSQL\footnote{\href{https://www.postgresql.org/}{Web de PostgreSQL}},
+que lanzaremos en un contenedor Docker usando su imagen oficial. Los
+datos se insertan usando una función Python a la que se le indica la ruta
+del fichero CSV donde están los datos ya procesados.
+
+\begin{itemize}
+    \item\href{
+        https://github.com/Varrrro/forecast/blob/master/airflow/tasks.py#L84-L101
+    }{Lanzamiento de la base de datos y ejecución del procesamiento}
+    \item\href{
+        https://github.com/Varrrro/forecast/blob/master/airflow/functions.py#L26-L29
+    }{Lectura del CSV e inserción en la base de datos}
+\end{itemize}

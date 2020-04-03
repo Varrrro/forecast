@@ -1,0 +1,37 @@
+\documentclass{article}
+\usepackage[utf8]{inputenc}
+\usepackage{graphicx}
+\usepackage{hyperref}
+\usepackage[bottom]{footmisc}
+\usepackage{listings}
+
+\hypersetup{colorlinks=true}
+\renewcommand{\contentsname}{Índice}
+
+\begin{document}
+\begin{titlepage}
+    \centering
+    \includegraphics[width=0.5\textwidth]{images/logo-ugr.png}\par
+    \vspace{1cm}
+    {\Large\scshape Cloud Computing \par}
+    {\huge\bfseries Despliegue de un servicio Cloud Native \par}
+    \vspace{0.2cm}
+    {\scshape Práctica 2 \par}
+    \vfill
+    {\large Víctor Vázquez Rodríguez  \par}
+    {victorvazrod@correo.ugr.es \par}
+    {76664636R \par}
+    \vfill
+    {\large Máster universitario en Ingeniería Informática \par}
+    \vspace{0.2cm}
+    {Curso 2019/20 \par}
+\end{titlepage}
+
+\tableofcontents\newpage
+
+\input{sections/introduction.tex}\newpage
+\input{sections/data.tex}\newpage
+\input{sections/models.tex}\newpage
+\input{sections/services.tex}\newpage
+\input{sections/flow.tex}\newpage
+\end{document}

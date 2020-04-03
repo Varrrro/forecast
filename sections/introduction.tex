@@ -1,0 +1,20 @@
+\section{Introducción}
+En esta práctica se pedía construir un servicio de predicción meteorológica
+siguiendo el modelo conocido como \textbf{\textit{Cloud Native}}. Para ello,
+se hace uso de la herramienta \textbf{Apache Airflow}\footnote{\href{https://airflow.apache.org/}{Web de Apache Airflow}},
+la cuál permite definir flujos de trabajo con tareas atómicas que se pueden
+ejecutar de forma distribuida, aprovechando las características de la nube.
+
+En concreto, el servicio debe permitir obtener las predicciones de temperatura
+y humedad para las próximas 24, 48 y 72 horas. Hay que implementar dos versiones
+del mismo, usando en la primera un modelo de análisis de series temporales
+llamado ARIMA. Para la segunda versión del servicio, he decidido usar un
+modelo autorregresivo. Los dos servicios se ejecutarán usando contenedores.
+
+Ambos modelos se entrenan con los conjuntos de datos proporcionados para la
+práctica, los cuáles se deben procesar previamente en el flujo de trabajo
+desarrollado.
+
+A lo largo de este documento se presentarán las distintas tareas que se
+debían realizar para la práctica, explicando la solución elegida e
+incluyendo enlaces a la implementación de ésta, que se encuentra en GitHub\footnote{\href{https://github.com/varrrro/forecast}{Repositorio del proyecto}}.

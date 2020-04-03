@@ -1,0 +1,40 @@
+\section{Entrenamiento de los modelos}
+Una vez procesados los datos y almacenados en la base de datos, se
+pueden usar para entrenar los modelos, tanto ARIMA como el autorregresivo.
+En el planteamiento inicial de la práctica, se proponía realizar este
+entrenamiento dentro de los propios modelos, no obstante, este es un proceso
+que consume mucho tiempo, por lo que he pensado que sería más eficiente
+entrenar los modelos en tareas separadas del flujo de trabajo y almacenar
+los modelos ya entrenados en ficheros, que luego se pasarían a los servicios
+al lanzarlos.
+
+\subsection{ARIMA}
+Para entrenar el modelo ARIMA, utilizamos el código proporcionado, el cuál
+hace uso de la librería \textit{pmdarima}. Debemos entrenar dos modelos, uno
+para la temperatura y otro para la humedad. Una vez entrenados, usamos
+los \textit{pickles} de Python para guardarlos en la carpeta \lstinline{/tmp/forecast/models/arima}.
+
+\begin{itemize}
+    \item\href{
+        https://github.com/Varrrro/forecast/blob/master/airflow/tasks.py#L103-L123
+    }{Operadores del flujo de trabajo}
+    \item\href{
+        https://github.com/Varrrro/forecast/blob/master/airflow/functions.py#L44-L92
+    }{Entrenamiento de los modelos ARIMA}
+\end{itemize}
+
+\subsection{Modelo autorregresivo}
+El modelo autorregresivo se entrena con la librería \textit{statsmodels},
+que contiene gran cantidad de modelos estadísticos. El procedimiento es
+análogo al entrenamiento de los modelos ARIMA, necesitando también entrenar
+dos modelos y almacenándolos usando \textit{pickle}, esta vez en la carpeta
+\lstinline{/tmp/forecast/models/autoreg}.
+
+\begin{itemize}
+    \item\href{
+        https://github.com/Varrrro/forecast/blob/master/airflow/tasks.py#L125-L145
+    }{Operadores del flujo de trabajo}
+    \item\href{
+        https://github.com/Varrrro/forecast/blob/master/airflow/functions.py#L94-L120
+    }{Entrenamiento de los modelos autorregresivos}
+\end{itemize}
