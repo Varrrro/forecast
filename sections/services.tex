@@ -1,11 +1,126 @@
 \section{Construcción y despliegue de los servicios}
+Los ficheros con los modelos entrenados son usados por los servicios
+de predicción en tiempo de ejecución. Estos servicios han sido implementados
+en Python con la librería \textbf{\textit{hug}}\footnote{\href{https://www.hug.rest/}{Web de \textit{hug}}}
+y su despliegue se realiza mediante contenedores Docker.
+
+\subsection{Funcionamiento}
+Cada servicio consta de dos partes: el punto o ruta de acceso y el modelo
+predictivo. Para el punto de acceso o \textit{endpoint} se define un
+controlador con \textit{hug}, como ya hemos indicado. Este controlador
+obtiene el número de horas al que se quiere realizar la predicción y,
+con él, llama al modelo para que realice la predicción.
+
+Al iniciar el servicio, los modelos se cargan a partir de los ficheros dados.
+Cuando realiza la predicción, los resultados devueltos por los modelos
+de temperatura y humedad se combinan en una única lista que se devuelve en
+formato JSON.
+
+Como se trata de dos servicios separados y que se ejecutan en contenedores
+independientes, se tiene que implementar un \textit{gateway} que sirva como
+punto de acceso unificado para ambos. Sencillamente, es un \textit{proxy}
+inverso que redirige las peticiones recibidas a cada servicio dependiendo
+de la ruta indicada. Este \textit{gateway} se ha implementado en Go.
+
+\begin{itemize}
+    \item\href{
+        https://github.com/Varrrro/forecast/blob/master/src/v1/arima_rest.py
+    }{API de la versión 1 del servicio}
+    \item\href{
+        https://github.com/Varrrro/forecast/blob/master/src/v2/autoreg_rest.py
+    }{API de la versión 2 del servicio}
+    \item\href{
+        https://github.com/Varrrro/forecast/blob/master/src/v1/arima.py
+    }{Modelo de la versión 1 del servicio}
+    \item\href{
+        https://github.com/Varrrro/forecast/blob/master/src/v2/autoreg.py
+    }{Modelo de la versión 2 del servicio}
+    \item\href{
+        https://github.com/Varrrro/forecast/blob/master/src/gateway/gateway.go
+    }{\textit{Gateway} del sistema}
+\end{itemize}
 
 \subsection{Descarga del código fuente}
+Todo este código se encuentra alojado en GitHub, por lo que para incorporarlo
+en el flujo de trabajo tan solo tenemos que clonar el repositorio mediante un
+\textit{BashOperator}. El repositorio se clona al directorio \lstinline{/tmp/forecast/code}.
+
+\begin{itemize}
+    \item\href{
+        https://github.com/Varrrro/forecast/blob/master/airflow/tasks.py#L147-L152
+    }{Clonación del repositorio de GitHub}
+\end{itemize}
 
 \subsection{Ejecución de pruebas}
+Se han implementado con \textit{unittest} algunas pruebas unitarias sencillas
+para la función de los modelos que se encarga de realizar la predicción y
+unir los resultados de temperatura y humedad. Antes de desplegar los servicios,
+se ejecutan estas pruebas para comprobar que su implementación es correcta.
 
-\subsection{Creación de red Docker}
+\begin{itemize}
+    \item\href{
+        https://github.com/Varrrro/forecast/blob/master/tests/test_arima.py
+    }{Pruebas del modelo ARIMA}
+    \item\href{
+        https://github.com/Varrrro/forecast/blob/master/tests/test_autoreg.py
+    }{Pruebas del modelo autorregresivo}
+    \item\href{
+        https://github.com/Varrrro/forecast/blob/master/airflow/tasks.py#L154-L159
+    }{Ejecución de las pruebas}
+\end{itemize}
 
 \subsection{Construcción de imágenes}
+Tanto el \textit{gateway} como las dos versiones de los servicios tienen su
+propio fichero \lstinline{Dockerfile} que define la construcción de las
+imágenes de los contenedores que se lanzarán.
+
+Todas estas imágenes exponen el puerto 8080, adonde deben llegar las peticiones.
+Además, las imágenes de las dos versiones de la API definen un punto para
+montar un volumen que es el que debe contener los ficheros de los modelos.
+
+En el caso de la imagen del \textit{gateway}, aprovechamos que Go es un
+lenguaje compilado para aplicar una construcción multifase, lo que nos permite
+tener una imagen final de tamaño mínimo.
+
+Las imágenes se construyen usando \lstinline{docker build} con \textit{BashOperator}.
+
+\begin{itemize}
+    \item\href{
+        https://github.com/Varrrro/forecast/blob/master/src/v1/Dockerfile
+    }{Dockerfile de la versión 1 de la API}
+    \item\href{
+        https://github.com/Varrrro/forecast/blob/master/src/v2/Dockerfile
+    }{Dockerfile de la versión 2 de la API}
+    \item\href{
+        https://github.com/Varrrro/forecast/blob/master/src/gateway/Dockerfile
+    }{Dockerfile del \textit{gateway}}
+\end{itemize}
+
+\subsection{Creación de red Docker}
+Cada una de las partes del sistema (servicios y \textit{gateway}) se ejecuta
+en un contenedor independiente. Es por ello que necesitamos crear una red
+Docker que permita al contenedor del \textit{gateway} comunicarse con los
+de los servicios.
+
+\begin{itemize}
+    \item\href{
+        https://github.com/Varrrro/forecast/blob/master/airflow/tasks.py#L182-L187
+    }{Creación de la red Docker}
+\end{itemize}
 
 \subsection{Lanzamiento de los contenedores}
+Con las imágenes construidas y la red Docker creada, ya podemos lanzar los
+contenedores del sistema. Para ello, usamos \lstinline{docker run}, teniendo
+en cuenta que todos los contenedores deben conectarse a la red (Con
+\lstinline{--network}) y que el contenedor del \textit{gateway} debe enlazar
+su puerto 8080 con un puerto local (con \lstinline{-p}).
+
+El orden en el que se despliegan estos contenedores también es importante,
+ya que el \textit{gateway} depende de los servicios, por lo que éstos deben
+desplegarse primero.
+
+\begin{itemize}
+    \item\href{
+        https://github.com/Varrrro/forecast/blob/master/airflow/tasks.py#L189-L208
+    }{Ejecución de los contenedores}
+\end{itemize}
