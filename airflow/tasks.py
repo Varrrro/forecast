@@ -210,13 +210,14 @@ RunGatewayContainer = BashOperator(
 # Task dependencies
 PrepareWorkdir >> DownloadTemp >> UnzipTemp >> MergeDatasets
 PrepareWorkdir >> DownloadHum >> UnzipHum >> MergeDatasets
+PrepareWorkdir >> RunDatabaseContainer
 
 [MergeDatasets, RunDatabaseContainer] >> InsertData
 
 InsertData >> [TrainArimaTemp, TrainArimaHum] >> RunArimaServiceContainer
 InsertData >> [TrainAutoregTemp, TrainAutoregHum] >> RunAutoregServiceContainer
 
-CloneRepository >> RunTests >> [CreateDockerNetwork, BuildArimaServiceImage, BuildAutoregServiceImage, BuildGatewayImage]
+PrepareWorkdir >> CloneRepository >> RunTests >> [CreateDockerNetwork, BuildArimaServiceImage, BuildAutoregServiceImage, BuildGatewayImage]
 
 [CreateDockerNetwork, BuildArimaServiceImage] >> RunArimaServiceContainer
 [CreateDockerNetwork, BuildAutoregServiceImage] >> RunAutoregServiceContainer

@@ -3,3 +3,4 @@ statsmodels==0.11.1
 pandas==1.0.3
 pmdarima==1.5.3
 apache-airflow==1.10.9
+psycopg2==2.8.4
