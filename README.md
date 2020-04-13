@@ -1,5 +1,5 @@
 # forecast
-Temperature and humidity prediction system written for de Cloud Computing
+Temperature and humidity prediction system written for the Cloud Computing
 course of the Masters Degree in Computer Engineering at University of Granada.
 
 This project was developed to test the functionality of [Apache Airflow](https://airflow.apache.org/)
